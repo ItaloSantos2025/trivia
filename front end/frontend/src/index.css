@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+body {
+  background-color: #0f172a;
+  color: white;
+  min-height: 100vh;
+  margin: 0;
+}
+
+/* Remove as setinhas do campo de número */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none; /* Adicione esta linha para resolver o erro da imagem */
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield; /* Adicione esta linha também */
+}

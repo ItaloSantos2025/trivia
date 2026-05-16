@@ -28,4 +28,12 @@ public class QuestionService {
     public void deletarTudo() {
         repository.deleteAll();
     }
+
+    public List<Question> buscarAleatorias(int limite) {
+        return repository.findRandomQuestions(limite);
+    }
+
+    public long contarTotal() {
+        return repository.count();
+    }
 }

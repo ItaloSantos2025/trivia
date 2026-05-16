@@ -19,9 +19,11 @@ public class QuestionController {
         this.service = service;
     }
 
-    // Listar todas: Retorna 200 OK
     @GetMapping
-    public ResponseEntity<List<Question>> getAll() {
+    public ResponseEntity<List<Question>> getAll(@RequestParam(required = false, defaultValue = "0") int limit) {
+        if (limit > 0) {
+            return ResponseEntity.ok(service.buscarAleatorias(limit));
+        }
         return ResponseEntity.ok(service.listarTodas());
     }
 

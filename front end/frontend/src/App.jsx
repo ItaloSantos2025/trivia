@@ -4,6 +4,7 @@ import * as Lucide from 'lucide-react';
 
 function App() {
   // --- ESTADOS ---
+  const [isServerOnline, setIsServerOnline] = useState(true); // <--- AQUI
   const [showWarningModal, setShowWarningModal] = useState({ show: false, message: '', autoStart: false });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [questions, setQuestions] = useState([]);
@@ -37,11 +38,35 @@ function App() {
       }
   };
 
+// Este é o que você já tem (Busca inicial)
   useEffect(() => {
     fetchData();
   }, []);
 
-  // --- LÓGICA DO QUIZ ---
+  // --- NOVO: MONITORAMENTO DE CONEXÃO (HEARTBEAT) ---
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const response = await api.get('/questions'); 
+        
+        if (response.data && Array.isArray(response.data)) {
+          setQuestions(response.data); 
+          setIsServerOnline(true);
+        }
+      } catch (err) {
+        // O SERVIDOR CAIU:
+        setIsServerOnline(false); // Mostra a faixa vermelha
+        setQuestions([]);         // Zera o contador na tela (fica 0 questões)
+      }
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 3000); 
+    return () => clearInterval(interval);
+  }, []);
+  // ------------------------------------------------
+
+  // Este também é o que você já tem (Lógica do Quiz)
   useEffect(() => {
     if (gameState === 'playing' && gameQuestions[currentQuestion]) {
       const answers = [...(gameQuestions[currentQuestion].answers || [])];
@@ -51,39 +76,52 @@ function App() {
     }
   }, [currentQuestion, gameQuestions, gameState]);
 
-  const startGame = () => {
+const startGame = async () => {
     const numLimit = parseInt(limit) || 1;
 
-    // Caso 1: Banco Vazio
-    if (questions.length === 0) {
-      setShowWarningModal({ 
-        show: true, 
-        message: "Não há questões no momento.",
-        autoStart: false 
-      });
-      return;
-    }
+    try {
+      setLoading(true);
+      // 1. Buscamos as questões "frescas" e sorteadas pelo MySQL
+      const response = await api.get(`/questions?limit=${numLimit}`);
+      const data = response.data;
 
-    // Caso 2: Limite maior que o estoque
-    if (numLimit > questions.length) {
-      const shuffled = [...questions].sort(() => Math.random() - 0.5);
-      setGameQuestions(shuffled); // Pega tudo o que tem
+      // Caso 1: Banco Vazio (Java retornou lista vazia)
+      if (!data || data.length === 0) {
+        setShowWarningModal({ 
+          show: true, 
+          message: "O banco de dados está vazio ou o servidor não enviou dados.",
+          autoStart: false 
+        });
+        return;
+      }
+
+      // Caso 2: Limite maior que o estoque 
+      if (data.length < numLimit) {
+        setGameQuestions(data); 
+        setCurrentQuestion(0);
+        setScore(0);
+        setShowWarningModal({ 
+          show: true, 
+          message: `Você pediu ${numLimit} rounds, mas o banco possui apenas ${data.length} questões. Vamos iniciar com o que temos!`,
+          autoStart: true 
+        });
+        return;
+      }
+
+      // Caso Normal: Veio a quantidade exata pedida
+      setGameQuestions(data);
       setCurrentQuestion(0);
       setScore(0);
-      setShowWarningModal({ 
-        show: true, 
-        message: `Você pediu ${numLimit} rounds, mas temos apenas ${questions.length} questões. O desafio começará com o máximo disponível!`,
-        autoStart: true 
-      });
-      return;
+      setGameState('playing');
+      
+    } catch (err) {
+      // Se o Back-end cair bem na hora de iniciar
+      console.error("Erro ao iniciar jogo:", err);
+      // Ativamos a faixa vermelha, mas sem o Toast verde redundante
+      setIsServerOnline(false); 
+    } finally {
+      setLoading(false);
     }
-
-    // Caso Normal
-    const shuffled = [...questions].sort(() => Math.random() - 0.5);
-    setGameQuestions(shuffled.slice(0, numLimit));
-    setCurrentQuestion(0);
-    setScore(0);
-    setGameState('playing');
   };
 
   const handleAnswerClick = (answer) => {
@@ -108,7 +146,7 @@ function App() {
     }, 1500);
   };
 
-  const handleSave = async (e) => {
+const handleSave = async (e) => {
     e.preventDefault();
     const payload = {
       text: newQuestionText,
@@ -127,11 +165,12 @@ function App() {
       setNewQuestionText('');
       setCategory('');
       e.target.reset();
-      fetchData();
+      // O Heartbeat cuidará de atualizar o contador de questões automaticamente
       setTimeout(() => setToast(null), 3000);
     } catch (err) {
-      setToast("Erro ao salvar.");
-      setTimeout(() => setToast(null), 3000);
+      console.error("Erro ao salvar:", err);
+      // Ativa a faixa vermelha mas NÃO dispara o setToast de erro
+      setIsServerOnline(false); 
     }
   };
 
@@ -157,6 +196,12 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-4 font-sans">
+      {/* BANNER DE STATUS DO SERVIDOR */}
+      {!isServerOnline && (
+        <div className="fixed top-0 left-0 w-full bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.3em] py-2 text-center z-[200] animate-pulse">
+          Conexão Perdida com o Servidor SQL
+        </div>
+      )}
       {toast && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-400 font-bold uppercase text-[10px] tracking-widest">
           <Lucide.CheckCircle2 size={16} /> {toast}
@@ -240,8 +285,16 @@ function App() {
                 />
               </div>
               
-              <button onClick={startGame} className="bg-blue-600 hover:bg-blue-500 px-12 py-5 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-900/40 active:scale-95">
-                Iniciar Desafio
+              <button 
+                onClick={startGame} 
+                disabled={!isServerOnline || loading} 
+                className={`bg-blue-600 px-12 py-5 rounded-2xl font-black uppercase transition-all shadow-xl 
+                  ${(!isServerOnline || loading) 
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : 'hover:bg-blue-500 active:scale-95'
+                  }`}
+              >
+                {loading ? 'Carregando...' : 'Iniciar Desafio'}
               </button>
             </div>
           )}
@@ -315,7 +368,18 @@ function App() {
                 <input id="wrong-2" className="bg-slate-900 p-4 rounded-xl outline-none" placeholder="Errada 2" required />
                 <input id="wrong-3" className="bg-slate-900 p-4 rounded-xl outline-none" placeholder="Errada 3" required />
               </div>
-              <button className="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-black uppercase tracking-widest transition-all active:scale-[0.99]">Gravar no Banco SQL</button>
+              <button
+                type="submit"
+                // Bloqueia se o servidor estiver offline
+                disabled={!isServerOnline}
+                className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest transition-all
+                  ${!isServerOnline 
+                    ? 'bg-slate-700 text-slate-500 opacity-50 cursor-not-allowed' 
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg'
+                  }`}
+              >
+                {!isServerOnline ? 'Servidor Offline' : 'Salvar Questão'}
+              </button>
             </form>
           </section>
         )}

@@ -7,15 +7,15 @@ body {
   margin: 0;
 }
 
-/* Remove as setinhas do campo de número */
+
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none;
-  appearance: none; /* Adicione esta linha para resolver o erro da imagem */
+  appearance: none; 
   margin: 0;
 }
 
 input[type=number] {
   -moz-appearance: textfield;
-  appearance: textfield; /* Adicione esta linha também */
+  appearance: textfield; 
 }

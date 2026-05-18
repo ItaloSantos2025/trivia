@@ -23,7 +23,6 @@ function App() {
   const [newQuestionText, setNewQuestionText] = useState('');
   const [category, setCategory] = useState('');
 
-  // --- BUSCA DE DADOS ---
   const fetchData = async () => {
       setLoading(true);
       try {
@@ -38,12 +37,10 @@ function App() {
       }
   };
 
-// Este é o que você já tem (Busca inicial)
   useEffect(() => {
     fetchData();
   }, []);
 
-  // --- NOVO: MONITORAMENTO DE CONEXÃO (HEARTBEAT) ---
   useEffect(() => {
     const checkStatus = async () => {
       try {
@@ -54,9 +51,9 @@ function App() {
           setIsServerOnline(true);
         }
       } catch (err) {
-        // O SERVIDOR CAIU:
-        setIsServerOnline(false); // Mostra a faixa vermelha
-        setQuestions([]);         // Zera o contador na tela (fica 0 questões)
+
+        setIsServerOnline(false); 
+        setQuestions([]);       
       }
     };
 
@@ -64,9 +61,8 @@ function App() {
     const interval = setInterval(checkStatus, 3000); 
     return () => clearInterval(interval);
   }, []);
-  // ------------------------------------------------
 
-  // Este também é o que você já tem (Lógica do Quiz)
+  
   useEffect(() => {
     if (gameState === 'playing' && gameQuestions[currentQuestion]) {
       const answers = [...(gameQuestions[currentQuestion].answers || [])];
@@ -81,43 +77,43 @@ const startGame = async () => {
 
     try {
       setLoading(true);
-      // 1. Buscamos as questões "frescas" e sorteadas pelo MySQL
+
       const response = await api.get(`/questions?limit=${numLimit}`);
       const data = response.data;
 
-      // Caso 1: Banco Vazio (Java retornou lista vazia)
+
       if (!data || data.length === 0) {
         setShowWarningModal({ 
           show: true, 
-          message: "O banco de dados está vazio ou o servidor não enviou dados.",
+          message: "O estoque de Questões está zerado.",
           autoStart: false 
         });
         return;
       }
 
-      // Caso 2: Limite maior que o estoque 
+
       if (data.length < numLimit) {
         setGameQuestions(data); 
         setCurrentQuestion(0);
         setScore(0);
         setShowWarningModal({ 
           show: true, 
-          message: `Você pediu ${numLimit} rounds, mas o banco possui apenas ${data.length} questões. Vamos iniciar com o que temos!`,
+          message: `Você pediu ${numLimit} rounds, mas nós temos apenas ${data.length} questões. Vamos iniciar com o que temos!`,
           autoStart: true 
         });
         return;
       }
 
-      // Caso Normal: Veio a quantidade exata pedida
+
       setGameQuestions(data);
       setCurrentQuestion(0);
       setScore(0);
       setGameState('playing');
       
     } catch (err) {
-      // Se o Back-end cair bem na hora de iniciar
+
       console.error("Erro ao iniciar jogo:", err);
-      // Ativamos a faixa vermelha, mas sem o Toast verde redundante
+
       setIsServerOnline(false); 
     } finally {
       setLoading(false);
@@ -165,11 +161,9 @@ const handleSave = async (e) => {
       setNewQuestionText('');
       setCategory('');
       e.target.reset();
-      // O Heartbeat cuidará de atualizar o contador de questões automaticamente
       setTimeout(() => setToast(null), 3000);
     } catch (err) {
       console.error("Erro ao salvar:", err);
-      // Ativa a faixa vermelha mas NÃO dispara o setToast de erro
       setIsServerOnline(false); 
     }
   };
@@ -190,16 +184,16 @@ const handleSave = async (e) => {
 
   if (loading) return (
     <div className="min-h-screen bg-[#0f172a] flex items-center justify-center font-black text-blue-500 animate-pulse text-2xl">
-      CONECTANDO AO MYSQL...
+      CONECTANDO...
     </div>
   );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-4 font-sans">
-      {/* BANNER DE STATUS DO SERVIDOR */}
+      {/**/}
       {!isServerOnline && (
         <div className="fixed top-0 left-0 w-full bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.3em] py-2 text-center z-[200] animate-pulse">
-          Conexão Perdida com o Servidor SQL
+          Conexão Perdida
         </div>
       )}
       {toast && (
@@ -208,7 +202,7 @@ const handleSave = async (e) => {
         </div>
       )}
 
-      {/* MODAL DE AVISO / LIMITE EXCEDIDO */}
+      {/**/}
       {showWarningModal.show && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] max-w-sm w-full text-center space-y-6 shadow-2xl">
@@ -233,7 +227,7 @@ const handleSave = async (e) => {
         </div>
       )}
 
-      {/* MODAL DE EXCLUSÃO ESTILIZADO */}
+      {/**/}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] max-w-sm w-full text-center space-y-6 shadow-2xl">
@@ -241,9 +235,9 @@ const handleSave = async (e) => {
               <Lucide.AlertTriangle size={32} />
             </div>
             <div>
-              <h2 className="text-2xl font-black uppercase italic tracking-tighter">Zerar Banco?</h2>
+              <h2 className="text-2xl font-black uppercase italic tracking-tighter">Zerar Questões?</h2>
               <p className="text-slate-400 text-sm font-medium mt-2">
-                Isso apagará permanentemente todas as perguntas e alternativas do MySQL.
+                Isso apagará permanentemente todas as perguntas e alternativas.
               </p>
             </div>
             <div className="flex gap-3">
@@ -370,7 +364,6 @@ const handleSave = async (e) => {
               </div>
               <button
                 type="submit"
-                // Bloqueia se o servidor estiver offline
                 disabled={!isServerOnline}
                 className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest transition-all
                   ${!isServerOnline 

@@ -20,6 +20,6 @@ public class Question {
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "question_id")
-    @JsonManagedReference // ISSO garante que as respostas apareçam no JSON do Front
+    @JsonManagedReference
     private List<Answer> answers;
 }

@@ -19,7 +19,7 @@ public class QuestionFactory {
                 .text(text)
                 .isCorrect(isCorrect)
                 .build();
-        ans.setQuestion(question); // Garante a integridade da FK
+        ans.setQuestion(question);
         return ans;
     }
 }

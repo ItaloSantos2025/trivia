@@ -9,7 +9,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Setter // Adicione isso aqui para garantir que o setQuestion exista
+@Setter
 public class Answer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,6 +21,6 @@ public class Answer {
 
     @ManyToOne
     @JoinColumn(name = "question_id")
-    @JsonBackReference // ISSO evita o loop infinito que trava o JSON
+    @JsonBackReference
     private Question question;
 }

@@ -27,14 +27,14 @@ public class QuestionController {
         return ResponseEntity.ok(service.listarTodas());
     }
 
-    // Criar: Retorna 201 Created
+
     @PostMapping
     public ResponseEntity<Question> create(@RequestBody Question question) {
         Question salva = service.salvar(question);
         return ResponseEntity.status(HttpStatus.CREATED).body(salva);
     }
 
-    // Deletar Tudo: Retorna 204 No Content (sucesso sem corpo de resposta)
+
     @DeleteMapping("/all")
     public ResponseEntity<Void> deleteAll() {
         service.deletarTudo();

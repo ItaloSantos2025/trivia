@@ -37,7 +37,6 @@ public class DataInitializer implements CommandLineRunner {
 
                 for (Map<String, Object> res : results) {
                     try {
-                        // O Maestro pede ao Adapter, que pede à Factory, e o Service salva.
                         service.salvar(adapter.fromExternalApi(res));
                     } catch (Exception e) {
                         System.out.println(">>> Erro em uma questão. Pulando...");

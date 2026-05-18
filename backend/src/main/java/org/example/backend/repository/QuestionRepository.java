@@ -10,7 +10,6 @@ import java.util.List;
 @Repository
 public interface QuestionRepository extends JpaRepository<Question, Long> {
 
-    // Sorteia N questões direto no MySQL (Muito mais rápido)
     @Query(value = "SELECT * FROM question ORDER BY RAND() LIMIT :limit", nativeQuery = true)
     List<Question> findRandomQuestions(@Param("limit") int limit);
 }
